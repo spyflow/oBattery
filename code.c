@@ -27,6 +27,8 @@ void show_help() {
     printf("Options:\n");
     printf("  -p, --precision <num>  Set the number of decimals (default is 2)\n");
     printf("  -h, --help             Show this help message\n");
+    printf("  -v, --version          Show program version\n");
+    printf("  -a, --author           Show program author\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -48,6 +50,14 @@ int main(int argc, char *argv[]) {
                 printf("Error: --precision requires a number argument.\n");
                 return 1;
             }
+        }
+        if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
+            printf("oBattery version 0.0.2b\n");
+            return 0;
+        }
+        if (strcmp(argv[i], "--author") == 0 || strcmp(argv[i], "-a") == 0) {
+            printf("Program author: spyflow\n");
+            return 0;
         }else {
             fprintf(stderr, "Unknown option: %s\n", argv[i]);
             //show_help();
