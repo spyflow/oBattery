@@ -42,29 +42,29 @@ int main(int argc, char *argv[]) {
             show_help();
             return 0;
         }
-        if (strcmp(argv[i], "--precision") == 0 || strcmp(argv[i], "-p") == 0) {
+        else if (strcmp(argv[i], "--precision") == 0 || strcmp(argv[i], "-p") == 0) {
             if (i + 1 < argc) {
                 precision = atoi(argv[i + 1]);
                 i++;  // Skip next argument since it's the precision value
             } else {
-                printf("Error: --precision requires a number argument.\n");
+                fprintf(stderr, "Error: --precision requires a number argument.\n");
                 return 1;
             }
         }
-        if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
+        else if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
             printf("oBattery version 0.0.2b\n");
             return 0;
         }
-        if (strcmp(argv[i], "--author") == 0 || strcmp(argv[i], "-a") == 0) {
+        else if (strcmp(argv[i], "--author") == 0 || strcmp(argv[i], "-a") == 0) {
             printf("Program author: spyflow\n");
             return 0;
-        }else {
+        }
+        else {
             fprintf(stderr, "Unknown option: %s\n", argv[i]);
-            //show_help();
             return 1;
         }
     }
-
+    
     // Read energy_now
     file = fopen("/sys/class/power_supply/BAT0/energy_now", "r");
     if (file == NULL) {
