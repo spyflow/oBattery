@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
             }
         }
         else if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
-            printf("oBattery version 0.0.2b\n");
+            printf("oBattery version 0.0.3b\n");
             return 0;
         }
         else if (strcmp(argv[i], "--author") == 0 || strcmp(argv[i], "-a") == 0) {
