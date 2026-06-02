@@ -103,7 +103,7 @@ Add to your status bar configuration:
 
 ```bash
 BATTERY=$(obattery)
-echo "Battery: $BATTERY%"
+echo "$BATTERY"
 ```
 
 ## Troubleshooting
