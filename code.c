@@ -20,23 +20,25 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Función para mostrar el mensaje de ayuda
+/* Function to display help message */
 void show_help() {
-    printf("oBattery Percentage Calculator\n");
+    printf("oBattery Calculator\n");
     printf("Usage: obattery [options]\n");
     printf("Options:\n");
     printf("  -p, --precision <num>  Set the number of decimals (default is 2)\n");
+    printf("  -n, --number           Return only the numeric value (no text or %% symbol)\n");
     printf("  -h, --help             Show this help message\n");
     printf("  -v, --version          Show program version\n");
     printf("  -a, --author           Show program author\n");
 }
 
 int main(int argc, char *argv[]) {
-    int precision = 2;  // Default precision
+    int precision = 2;  /* Default precision */
+    int number_only = 0;  /* Flag for numeric output only */
     FILE *file;
     long energy_now, energy_full;
 
-    // Parse command-line arguments
+    /* Parse command-line arguments */
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             show_help();
@@ -45,11 +47,14 @@ int main(int argc, char *argv[]) {
         else if (strcmp(argv[i], "--precision") == 0 || strcmp(argv[i], "-p") == 0) {
             if (i + 1 < argc) {
                 precision = atoi(argv[i + 1]);
-                i++;  // Skip next argument since it's the precision value
+                i++;  /* Skip next argument since it's the precision value */
             } else {
                 fprintf(stderr, "Error: --precision requires a number argument.\n");
                 return 1;
             }
+        }
+        else if (strcmp(argv[i], "--number") == 0 || strcmp(argv[i], "-n") == 0) {
+            number_only = 1;
         }
         else if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
             printf("oBattery version 0.0.3\n");
@@ -65,7 +70,7 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    // Read energy_now
+    /* Read energy_now */
     file = fopen("/sys/class/power_supply/BAT0/energy_now", "r");
     if (file == NULL) {
         perror("Error reading energy_now");
@@ -74,7 +79,7 @@ int main(int argc, char *argv[]) {
     fscanf(file, "%ld", &energy_now);
     fclose(file);
 
-    // Read energy_full
+    /* Read energy_full */
     file = fopen("/sys/class/power_supply/BAT0/energy_full", "r");
     if (file == NULL) {
         perror("Error reading energy_full");
@@ -83,17 +88,21 @@ int main(int argc, char *argv[]) {
     fscanf(file, "%ld", &energy_full);
     fclose(file);
 
-    // Avoid division by zero
+    /* Avoid division by zero */
     if (energy_full == 0) {
         printf("Error: energy_full is 0.\n");
         return 1;
     }
 
-    // Calculate battery percentage
-    double battery_percentage = (double)energy_now / energy_full * 100;
+    /* Calculate battery percentage */
+    double battery = (double)energy_now / energy_full * 100;
 
-    // Print the result with the specified precision
-    printf("Battery Percentage: %.*f%%\n", precision, battery_percentage);
+    /* Print the result based on output mode */
+    if (number_only) {
+        printf("%.*f\n", precision, battery);
+    } else {
+        printf("Battery: %.*f%%\n", precision, battery);
+    }
 
     return 0;
 }
