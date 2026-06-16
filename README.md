@@ -10,10 +10,11 @@ oBattery reads battery information directly from Linux system files (`/sys/class
 
 - Lightweight and minimal dependencies
 - Written in pure C
-- Simple and accurate battery percentage calculation
+- Simple and accurate battery calculation
 - Linux-only (uses `/sys/class/power_supply/`)
 - Fast execution
 - Easy to integrate into shell scripts or status bars
+- Highly customizable output formats
 
 ## Prerequisites
 
@@ -77,9 +78,44 @@ Simply execute the binary to display your current battery percentage:
 obattery
 ```
 
-### Output
+### Options
 
-The program will display the battery percentage as a simple number or message.
+```sh
+obattery [options]
+```
+
+Available options:
+- `-p, --precision <num>` - Set the number of decimal places (default is 2)
+- `-n, --number` - Return only the numeric value (no text or % symbol)
+- `-h, --help` - Show help message
+- `-v, --version` - Show program version
+- `-a, --author` - Show program author
+
+### Output Examples
+
+Default output:
+```sh
+obattery
+# Output: Battery: 85.50%
+```
+
+Numeric value only (perfect for status bars):
+```sh
+obattery -n
+# Output: 85.50
+```
+
+With custom precision:
+```sh
+obattery -p 0
+# Output: Battery: 86%
+```
+
+Numeric with no decimals:
+```sh
+obattery -n -p 0
+# Output: 86
+```
 
 ## How It Works
 
@@ -93,10 +129,29 @@ It calculates the percentage as: `(current_energy / full_energy) × 100`
 
 ### With i3statusbar, Polybar, or Dwmblocks
 
-Add to your status bar configuration:
+For maximum customization, use the `-n` flag to get only the numeric value:
 
 ```sh
-./path/to/obattery
+obattery -n -p 0
+```
+
+This will output just the number (e.g., `85`), allowing you to format it however you like in your status bar configuration.
+
+**Example with Polybar:**
+```ini
+[module/battery]
+type = custom/script
+exec = obattery -n -p 0
+interval = 5
+format = <label>
+format-prefix = "🔋 "
+label = %output%%%
+```
+
+**Example with i3status:**
+```bash
+# In your status bar script
+echo "BAT: $(obattery -n -p 0)%"
 ```
 
 ### With Shell Scripts
@@ -104,6 +159,12 @@ Add to your status bar configuration:
 ```bash
 BATTERY=$(obattery)
 echo "$BATTERY"
+```
+
+Or for just the number:
+```bash
+BATTERY=$(obattery -n -p 0)
+echo "Battery: $BATTERY%"
 ```
 
 ## Troubleshooting
