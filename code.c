@@ -19,85 +19,199 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 /* Function to display help message */
-void show_help() {
+void show_help(void) {
     printf("oBattery Calculator\n");
     printf("Usage: obattery [options]\n");
     printf("Options:\n");
     printf("  -p, --precision <num>  Set the number of decimals (default is 2)\n");
-    printf("  -n, --number           Return only the numeric value (no text or %% symbol)\n");
+    printf("  -n, --number           Return only the numeric value\n");
     printf("  -h, --help             Show this help message\n");
     printf("  -v, --version          Show program version\n");
     printf("  -a, --author           Show program author\n");
 }
 
-int main(int argc, char *argv[]) {
-    int precision = 2;  /* Default precision */
-    int number_only = 0;  /* Flag for numeric output only */
-    FILE *file;
-    long energy_now, energy_full;
+/* Parse and validate the precision number */
+int parse_precision(const char *text, int *precision) {
+    char *end;
+    long value;
 
-    /* Parse command-line arguments */
+    errno = 0;
+    value = strtol(text, &end, 10);
+
+    if (errno != 0 || *text == '\0' || *end != '\0') {
+        return 0;
+    }
+
+    if (value < 0 || value > 20) {
+        return 0;
+    }
+
+    *precision = (int)value;
+    return 1;
+}
+
+/* Read a long integer from a file */
+int read_value(const char *path, long *value) {
+    FILE *file = fopen(path, "r");
+
+    if (file == NULL) {
+        perror(path);
+        return 0;
+    }
+
+    if (fscanf(file, "%ld", value) != 1) {
+        fprintf(stderr, "Error: could not read a valid number from %s\n", path);
+        fclose(file);
+        return 0;
+    }
+
+    fclose(file);
+    return 1;
+}
+
+int main(int argc, char *argv[]) {
+    int precision = 2;
+    int number_only = 0;
+    long energy_now;
+    long energy_full;
+
+    const char *energy_now_path =
+        "/sys/class/power_supply/BAT0/energy_now";
+
+    const char *energy_full_path =
+        "/sys/class/power_supply/BAT0/energy_full";
+
+    /*
+     * Parse command-line arguments
+     */
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+        const char *precision_text = NULL;
+
+        if (strcmp(argv[i], "--help") == 0 ||
+            strcmp(argv[i], "-h") == 0) {
             show_help();
             return 0;
         }
-        else if (strcmp(argv[i], "--precision") == 0 || strcmp(argv[i], "-p") == 0) {
-            if (i + 1 < argc) {
-                precision = atoi(argv[i + 1]);
-                i++;  /* Skip next argument since it's the precision value */
-            } else {
-                fprintf(stderr, "Error: --precision requires a number argument.\n");
-                return 1;
-            }
-        }
-        else if (strcmp(argv[i], "--number") == 0 || strcmp(argv[i], "-n") == 0) {
-            number_only = 1;
-        }
-        else if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
+
+        else if (strcmp(argv[i], "--version") == 0 ||
+                 strcmp(argv[i], "-v") == 0) {
             printf("oBattery version 0.0.3\n");
             return 0;
         }
-        else if (strcmp(argv[i], "--author") == 0 || strcmp(argv[i], "-a") == 0) {
+
+        else if (strcmp(argv[i], "--author") == 0 ||
+                 strcmp(argv[i], "-a") == 0) {
             printf("Program author: spyflow\n");
             return 0;
         }
+
+        else if (strcmp(argv[i], "--number") == 0 ||
+                 strcmp(argv[i], "-n") == 0) {
+            number_only = 1;
+        }
+
+        /*
+         * Supports:
+         * -p 3
+         * --precision 3
+         * -p3
+         * --precision=3
+         */
+        else if (strcmp(argv[i], "-p") == 0 ||
+                 strcmp(argv[i], "--precision") == 0) {
+
+            if (i + 1 >= argc) {
+                fprintf(
+                    stderr,
+                    "Error: %s requires a number argument.\n",
+                    argv[i]
+                );
+                return 1;
+            }
+
+            precision_text = argv[++i];
+
+            if (!parse_precision(precision_text, &precision)) {
+                fprintf(
+                    stderr,
+                    "Error: precision must be an integer between 0 and 20.\n"
+                );
+                return 1;
+            }
+        }
+
+        else if (strncmp(argv[i], "--precision=", 12) == 0) {
+            precision_text = argv[i] + 12;
+
+            if (!parse_precision(precision_text, &precision)) {
+                fprintf(
+                    stderr,
+                    "Error: precision must be an integer between 0 and 20.\n"
+                );
+                return 1;
+            }
+        }
+
+        else if (strncmp(argv[i], "-p", 2) == 0 &&
+                 strlen(argv[i]) > 2) {
+            precision_text = argv[i] + 2;
+
+            if (!parse_precision(precision_text, &precision)) {
+                fprintf(
+                    stderr,
+                    "Error: precision must be an integer between 0 and 20.\n"
+                );
+                return 1;
+            }
+        }
+
         else {
             fprintf(stderr, "Unknown option: %s\n", argv[i]);
             return 1;
         }
     }
-    
-    /* Read energy_now */
-    file = fopen("/sys/class/power_supply/BAT0/energy_now", "r");
-    if (file == NULL) {
-        perror("Error reading energy_now");
-        return 1;
-    }
-    fscanf(file, "%ld", &energy_now);
-    fclose(file);
 
-    /* Read energy_full */
-    file = fopen("/sys/class/power_supply/BAT0/energy_full", "r");
-    if (file == NULL) {
-        perror("Error reading energy_full");
-        return 1;
-    }
-    fscanf(file, "%ld", &energy_full);
-    fclose(file);
-
-    /* Avoid division by zero */
-    if (energy_full == 0) {
-        printf("Error: energy_full is 0.\n");
+    /*
+     * Read the current battery energy.
+     */
+    if (!read_value(energy_now_path, &energy_now)) {
+        fprintf(
+            stderr,
+            "Make sure that your battery is located at BAT0.\n"
+        );
         return 1;
     }
 
-    /* Calculate battery percentage */
-    double battery = (double)energy_now / energy_full * 100;
+    /*
+     * Read the maximum battery energy.
+     */
+    if (!read_value(energy_full_path, &energy_full)) {
+        fprintf(
+            stderr,
+            "Make sure that your battery is located at BAT0.\n"
+        );
+        return 1;
+    }
 
-    /* Print the result based on output mode */
+    /*
+     * Avoid division by zero.
+     */
+    if (energy_full <= 0) {
+        fprintf(stderr, "Error: energy_full must be greater than zero.\n");
+        return 1;
+    }
+
+    /*
+     * Calculate battery percentage.
+     */
+    double battery = (double)energy_now / (double)energy_full * 100.0;
+
+    /*
+     * Print the result.
+     */
     if (number_only) {
         printf("%.*f\n", precision, battery);
     } else {
